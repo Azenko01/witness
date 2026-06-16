@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>свідок / witness / testigo</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0e0e0f;
+    --surface: #17171a;
+    --border: rgba(255,255,255,0.08);
+    --border-hover: rgba(255,255,255,0.16);
+    --text: #e8e8e6;
+    --muted: #6b6b6b;
+    --heard-color: #4a9eff;
+  }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; min-height: 100vh; display: flex; flex-direction: column; align-items: center; }
+  header { width: 100%; max-width: 600px; padding: 2rem 1.5rem 0; display: flex; justify-content: space-between; align-items: center; }
+  .logo { font-size: 15px; font-weight: 500; letter-spacing: 0.08em; color: var(--text); }
+  .header-right { display: flex; align-items: center; gap: 16px; }
+  .online { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+  .dot { width: 6px; height: 6px; background: #3d9e6b; border-radius: 50%; }
+  .lang-switcher { display: flex; gap: 6px; }
+  .lang-btn { background: none; border: 1px solid var(--border); border-radius: 6px; padding: 3px 9px; font-size: 12px; color: var(--muted); cursor: pointer; font-family: inherit; transition: border-color 0.2s, color 0.2s; }
+  .lang-btn:hover { color: var(--text); border-color: var(--border-hover); }
+  .lang-btn.active { color: var(--text); border-color: var(--border-hover); }
+  main { width: 100%; max-width: 600px; padding: 2.5rem 1.5rem; flex: 1; }
+  .question { font-size: 20px; font-weight: 400; line-height: 1.4; color: var(--text); margin-bottom: 1.25rem; }
+  .compose { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1rem 1.25rem; margin-bottom: 2.5rem; transition: border-color 0.2s; }
+  .compose:focus-within { border-color: var(--border-hover); }
+  textarea { width: 100%; background: none; border: none; outline: none; color: var(--text); font-size: 15px; font-family: inherit; line-height: 1.6; resize: none; min-height: 80px; }
+  textarea::placeholder { color: var(--muted); }
+  .compose-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
+  .hint { font-size: 12px; color: var(--muted); }
+  .send-btn { background: var(--text); color: var(--bg); border: none; border-radius: 8px; padding: 7px 18px; font-size: 13px; font-weight: 500; cursor: pointer; transition: opacity 0.15s; font-family: inherit; }
+  .send-btn:hover { opacity: 0.85; }
+  .send-btn:active { opacity: 0.7; }
+  .divider { font-size: 12px; color: var(--muted); margin-bottom: 1.25rem; letter-spacing: 0.04em; }
+  .feed { display: flex; flex-direction: column; gap: 10px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1rem 1.25rem; animation: fadeIn 0.3s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+  .card-text { font-size: 15px; line-height: 1.6; color: var(--text); margin-bottom: 10px; }
+  .card-footer { display: flex; align-items: center; gap: 14px; }
+  .hear-btn { background: none; border: 1px solid var(--border); border-radius: 7px; padding: 4px 12px; font-size: 12px; color: var(--muted); cursor: pointer; font-family: inherit; transition: border-color 0.2s, color 0.2s; display: flex; align-items: center; gap: 5px; }
+  .hear-btn:hover { border-color: var(--border-hover); color: var(--text); }
+  .hear-btn.heard { border-color: var(--heard-color); color: var(--heard-color); }
+  .meta { font-size: 12px; color: var(--muted); }
+  .empty { text-align: center; color: var(--muted); font-size: 14px; padding: 3rem 0; line-height: 1.7; }
+  .sent-flash { text-align: center; font-size: 13px; color: var(--muted); padding: 8px; animation: fadeIn 0.3s ease; }
+  .lang-badge { font-size: 10px; color: var(--muted); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; margin-left: 6px; vertical-align: middle; }
+</style>
+</head>
+<body>
+<header>
+  <span class="logo" id="logo-text">свідок</span>
+  <div class="header-right">
+    <span class="online"><span class="dot"></span><span id="online-count">0</span>&nbsp;<span id="label-online">зараз тут</span></span>
+    <div class="lang-switcher">
+      <button class="lang-btn" data-lang="uk">УКР</button>
+      <button class="lang-btn" data-lang="en">ENG</button>
+      <button class="lang-btn" data-lang="es">ESP</button>
+    </div>
+  </div>
+</header>
+<main>
+  <p class="question" id="question"></p>
+  <div class="compose">
+    <textarea id="input" maxlength="280"></textarea>
+    <div class="compose-footer">
+      <span class="hint" id="label-hint"></span>
+      <button class="send-btn" id="send-btn"></button>
+    </div>
+  </div>
+  <div class="divider" id="feed-label"></div>
+  <div class="feed" id="feed"></div>
+</main>
+
+<script>
+const T = {
+  uk: {
+    logo: 'свідок',
+    question: 'що ти хочеш сказати,\nале думаєш що нікому не потрібно?',
+    placeholder: 'одне речення. або більше. ніхто не знає хто ти.',
+    hint: 'анонімно · зникне через 24 год',
+    send: 'поділитись',
+    online: 'зараз тут',
+    feedLabel: 'хтось щойно написав:',
+    heard: 'я чув тебе',
+    heardDone: '✓ я чув тебе',
+    heardCount: (n) => `${n} почули`,
+    empty: 'поки тут тихо.\nбудь першим хто поділиться.',
+    flash: 'почуто.',
+    ago: (s) => s < 60 ? 'щойно' : s < 3600 ? Math.floor(s/60)+' хв тому' : Math.floor(s/3600)+' год тому',
+  },
+  en: {
+    logo: 'witness',
+    question: 'what do you want to say\nbut think no one needs to hear?',
+    placeholder: 'one sentence. or more. no one knows who you are.',
+    hint: 'anonymous · disappears in 24h',
+    send: 'share',
+    online: 'here now',
+    feedLabel: 'someone just wrote:',
+    heard: 'i heard you',
+    heardDone: '✓ i heard you',
+    heardCount: (n) => `${n} heard`,
+    empty: 'quiet here for now.\nbe the first to share.',
+    flash: 'heard.',
+    ago: (s) => s < 60 ? 'just now' : s < 3600 ? Math.floor(s/60)+'m ago' : Math.floor(s/3600)+'h ago',
+  },
+  es: {
+    logo: 'testigo',
+    question: '¿qué quieres decir\npero crees que a nadie le importa?',
+    placeholder: 'una frase. o más. nadie sabe quién eres.',
+    hint: 'anónimo · desaparece en 24h',
+    send: 'compartir',
+    online: 'aquí ahora',
+    feedLabel: 'alguien acaba de escribir:',
+    heard: 'te escuché',
+    heardDone: '✓ te escuché',
+    heardCount: (n) => `${n} escucharon`,
+    empty: 'silencio por ahora.\nsé el primero en compartir.',
+    flash: 'escuchado.',
+    ago: (s) => s < 60 ? 'ahora' : s < 3600 ? 'hace '+Math.floor(s/60)+'m' : 'hace '+Math.floor(s/3600)+'h',
+  }
+};
+
+const browserLang = (navigator.language || 'en').slice(0,2);
+let lang = T[browserLang] ? browserLang : 'en';
+
+function applyLang() {
+  const t = T[lang];
+  document.getElementById('logo-text').textContent = t.logo;
+  document.title = t.logo;
+  document.getElementById('question').textContent = t.question;
+  document.getElementById('input').placeholder = t.placeholder;
+  document.getElementById('label-hint').textContent = t.hint;
+  document.getElementById('send-btn').textContent = t.send;
+  document.getElementById('label-online').textContent = t.online;
+  const fl = document.getElementById('feed-label');
+  if (fl.textContent) fl.textContent = t.feedLabel;
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === lang));
+  document.querySelectorAll('.hear-btn:not(.heard)').forEach(b => { b.innerHTML = '◉ ' + t.heard; });
+  document.querySelectorAll('.hear-btn.heard').forEach(b => { b.innerHTML = t.heardDone; });
+}
+
+document.querySelectorAll('.lang-btn').forEach(b => {
+  b.addEventListener('click', () => { lang = b.dataset.lang; applyLang(); });
+});
+
+const ws = new WebSocket(`ws://${location.host}`);
+const feed = document.getElementById('feed');
+const input = document.getElementById('input');
+const sendBtn = document.getElementById('send-btn');
+const onlineEl = document.getElementById('online-count');
+const feedLabel = document.getElementById('feed-label');
+const heardIds = new Set();
+
+function timeAgo(ts) {
+  return T[lang].ago(Math.floor((Date.now() - ts) / 1000));
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function makeCard(msg) {
+  const t = T[lang];
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.dataset.id = msg.id;
+  const isHeard = heardIds.has(msg.id);
+  const langBadge = msg.lang && msg.lang !== lang ? `<span class="lang-badge">${msg.lang.toUpperCase()}</span>` : '';
+  card.innerHTML = `
+    <p class="card-text">${escHtml(msg.text)}${langBadge}</p>
+    <div class="card-footer">
+      <button class="hear-btn ${isHeard ? 'heard' : ''}" data-id="${msg.id}">
+        ${isHeard ? t.heardDone : '◉ ' + t.heard}
+      </button>
+      <span class="meta">${timeAgo(msg.timestamp)} · <span class="heard-count">${msg.heard}</span> ${t.heardCount(msg.heard).split(' ').slice(1).join(' ')}</span>
+    </div>`;
+  card.querySelector('.hear-btn').addEventListener('click', function() {
+    if (heardIds.has(msg.id)) return;
+    heardIds.add(msg.id);
+    this.classList.add('heard');
+    this.innerHTML = T[lang].heardDone;
+    ws.send(JSON.stringify({ type: 'hear', id: msg.id }));
+  });
+  return card;
+}
+
+function renderFeed(messages) {
+  feed.innerHTML = '';
+  const t = T[lang];
+  if (!messages.length) {
+    feedLabel.textContent = '';
+    feed.innerHTML = `<p class="empty">${t.empty.replace('\n','<br>')}</p>`;
+    return;
+  }
+  feedLabel.textContent = t.feedLabel;
+  messages.forEach(m => feed.appendChild(makeCard(m)));
+}
+
+ws.addEventListener('message', (e) => {
+  const data = JSON.parse(e.data);
+  if (data.type === 'init') { onlineEl.textContent = data.onlineCount; renderFeed(data.messages); }
+  if (data.type === 'online') onlineEl.textContent = data.count;
+  if (data.type === 'new_message') {
+    if (!feed.querySelector('.card')) { feedLabel.textContent = T[lang].feedLabel; feed.innerHTML = ''; }
+    feed.insertBefore(makeCard(data.message), feed.firstChild);
+  }
+  if (data.type === 'heard') {
+    const card = feed.querySelector(`[data-id="${data.id}"]`);
+    if (card) {
+      const cnt = card.querySelector('.heard-count');
+      if (cnt) cnt.textContent = data.heard;
+    }
+  }
+});
+
+sendBtn.addEventListener('click', () => {
+  const text = input.value.trim();
+  if (!text || ws.readyState !== 1) return;
+  ws.send(JSON.stringify({ type: 'post', text, lang }));
+  input.value = '';
+  const flash = document.createElement('p');
+  flash.className = 'sent-flash';
+  flash.textContent = T[lang].flash;
+  feed.insertBefore(flash, feed.firstChild);
+  setTimeout(() => flash.remove(), 2000);
+});
+
+input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) sendBtn.click(); });
+
+applyLang();
+</script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+{
+  "name": "witness",
+  "version": "1.0.0",
+  "description": "Анонімний свідок — скажи те що тримаєш в собі",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "ws": "^8.17.0"
+  }
+}
