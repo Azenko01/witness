@@ -148,7 +148,7 @@ document.querySelectorAll('.lang-btn').forEach(b => {
   b.addEventListener('click', () => { lang = b.dataset.lang; applyLang(); });
 });
 
-const ws = new WebSocket(`ws://${location.host}`);
+const ws = new WebSocket(`wss://${location.host}`);
 const feed = document.getElementById('feed');
 const input = document.getElementById('input');
 const sendBtn = document.getElementById('send-btn');
